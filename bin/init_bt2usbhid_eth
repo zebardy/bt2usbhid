@@ -17,6 +17,7 @@ CONFIG_STRINGS_DIR="${CONFIG_DIR}/strings/0x409"
 FUNCTIONS_DIR="${GADGET_DIR}/functions"
 KEYBOARD_FUNCTION_DIR="${FUNCTIONS_DIR}/hid.usb0"
 MOUSE_FUNCTION_DIR="${FUNCTIONS_DIR}/hid.usb1"
+#ETHERNET_FUNCTION_DIR="${FUNCTIONS_DIR}/rndis.usb0"
 
 # setup the usb gadget
 
@@ -26,6 +27,8 @@ echo 0x0104 > "${GADGET_DIR}/idProduct"       # Multifunction Composite Gadget
 echo 0x0100 > "${GADGET_DIR}/bcdDevice"       # v1.0.0
 echo 0x0200 > "${GADGET_DIR}/bcdUSB"          # USB 2
 echo 0x40   > "${GADGET_DIR}/bMaxPacketSize0" # 64
+echo "0x02" > "${GADGET_DIR}/bDeviceClass"
+echo "0x00" > "${GADGET_DIR}/bDeviceSubClass"
 
 mkdir -p "${STRINGS_DIR}"
 echo "${SERIALNUMBER}" > "${STRINGS_DIR}/serialnumber"
@@ -34,7 +37,7 @@ echo "${PRODUCT_NAME}" > "${STRINGS_DIR}/product"
 
 mkdir -p "${CONFIG_DIR}"
 mkdir -p "${CONFIG_STRINGS_DIR}"
-echo "Config 1: Bluetooth Keyboard / Mouse to USB HID Converter" > "${CONFIG_STRINGS_DIR}/configuration"
+echo "Config 1: Bluetooth Keyboard / Mouse to USB HID Converter + RNDIS" > "${CONFIG_STRINGS_DIR}/configuration"
 
 # setup a keyboard
 mkdir -p "${KEYBOARD_FUNCTION_DIR}" 
@@ -142,10 +145,44 @@ D=$(mktemp)
 echo -ne $mouse_report_descriptor > "$D" 
 cp "$D" /sys/kernel/config/usb_gadget/g1/functions/hid.usb1/report_desc
 
+
+## setup ethernet
+#mkdir -p "${ETHERNET_FUNCTION_DIR}"
+##if [ -e /sys/kernel/config/usb_gadget/g1/configs/c.1/hid.usb1 ]; then
+##  rm  /sys/kernel/config/usb_gadget/g1/configs/c.1/hid.usb1
+##fi
+
+#echo "48:6f:73:74:50:43" > "${ETHERNET_FUNCTION_DIR}/host_addr"      # Mouse
+#echo "42:61:64:55:53:42" > "${ETHERNET_FUNCTION_DIR}/dev_addr"      # No Subclass
+##echo 61 > "${MOUSE_FUNCTION_DIR}/report_desc_length" # 61 bytes
+#mkdir -p "${ETHERNET_FUNCTION_DIR}/os_desc/interface.rndis"
+
+#echo "1" > "${GADGET_DIR}/os_desc/use"
+#echo "0xcd" > "${GADGET_DIR}/os_desc/b_vendor_code"
+#echo "MSFT100" > "${GADGET_DIR}/os_desc/qw_sign"
+
+#echo RNDIS > "${ETHERNET_FUNCTION_DIR}/os_desc/interface.rndis/compatible_id"
+#echo 5162001 > "${ETHERNET_FUNCTION_DIR}/os_desc/interface.rndis/sub_compatible_id"
+
+#ln -s "${GADGET_DIR}/configs/c.1" "${GADGET_DIR}/os_desc"
+#ln -s /sys/kernel/config/usb_gadget/g1/functions/rndis.usb0 /sys/kernel/config/usb_gadget/g1/configs/c.1/
+
+#echo "20980000.usb" > /sys/kernel/config/usb_gadget/g1/UDC
+#sleep 5
+echo "" > /sys/kernel/config/usb_gadget/g1/UDC
+echo "0x00" > "${GADGET_DIR}/bDeviceClass"
+
 #echo -ne $mouse_report_descriptor > /sys/kernel/config/usb_gadget/g1/functions/hid.usb1/report_desc
 #echo -ne $mouse_report_descriptor > /tmp/bt_mouse
 
 ln -s /sys/kernel/config/usb_gadget/g1/functions/hid.usb0 /sys/kernel/config/usb_gadget/g1/configs/c.1/
 ln -s /sys/kernel/config/usb_gadget/g1/functions/hid.usb1 /sys/kernel/config/usb_gadget/g1/configs/c.1/
 
-ls /sys/class/udc > /sys/kernel/config/usb_gadget/g1/UDC
+udevadm settle -t 5 || :
+echo "20980000.usb" > /sys/kernel/config/usb_gadget/g1/UDC
+
+#sleep 0.2
+
+#ip a add "10.0.0.1/30" dev usb0
+#ip l set usb0 up
+#ip r add default via "10.0.0.2" dev usb0

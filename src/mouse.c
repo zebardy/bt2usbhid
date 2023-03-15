@@ -18,6 +18,7 @@ typedef struct {
   char x;
   char y;
   char wheel;
+  char hwheel;
 } mouse_report;
 
 int _clamp(int v, int min, int max);
@@ -26,7 +27,7 @@ void _handle_button_event (input_event *event, mouse_report *report);
 void _handle_relative_axes_event (input_event *event, mouse_report *report);
 
 void process_mouse_events () {
-  mouse_report report = {0, 0, 0, 0};
+  mouse_report report = {0, 0, 0, 0, 0};
 
   ioctl(STDIN_FD, EVIOCGRAB, 1);
 
@@ -54,9 +55,10 @@ int _clamp (int v, int min, int max) {
 void _send_mouse_report (mouse_report *report) {
   write(STDOUT_FD, report, sizeof(*report));
 
-  report->x     = 0;
-  report->y     = 0;
-  report->wheel = 0;
+  report->x      = 0;
+  report->y      = 0;
+  report->wheel  = 0;
+  report->hwheel = 0;
 }
 
 void _handle_button_event (input_event *event, mouse_report *report) {
@@ -88,6 +90,9 @@ void _handle_relative_axes_event (input_event *event, mouse_report *report) {
       break;
     case REL_WHEEL:
       report->wheel = _clamp(event->value, -127, 127);
+      break;
+    case REL_HWHEEL:
+      report->hwheel = _clamp(event->value, -127, 127);
       break;
   }
 
